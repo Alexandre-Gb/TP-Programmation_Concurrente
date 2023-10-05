@@ -197,27 +197,6 @@ Les méthodes (thread-safe) de la classe peuvent être:
 - public Optional<Integer> max() : retourne la valeur maximale actuelle si elle existe, ou un Optional vide sinon.
 - public void propose(int newValue) : remplace la valeur maximale actuelle par newValue si newValue est supérieur à la valeur maximale actuelle
 
-2. **Dans une classe Main, écrire un programme qui crée un CurrentMaximum et démarre les 4 threads. 
-     Chacun attend une seconde avant de proposer une valeur aléatoire dans l'intervalle [0, MAX_VALUE[ :**
-```java
-ThreadLocalRandom.current().nextInt(MAX_VALUE);
-```
-
-**À ce moment là, le thread affiche qu'il propose cette valeur et il fait ça 10 fois. 
-MAX_VALUE=10_000 est une constante de la classe CurrentMaximum.
-Pendant ce temps, toutes les secondes, le main affiche quel est le maximum courant. 
-Après 10 affichages du maximum courant, le main attend que les autres threads aient fini et affiche le maximum final avant de terminer.**
-
-On obtient le main suivant:
-```java
-public class Main {
-  public static void main(String[] args) throws InterruptedException {
-    var currentMaximum = new CurrentMaximum();
-    var threads = new Thread[4];
-  }
-}
-```
-
 3. **Écrire le code de la classe thread-safe CurrentMaximum afin que le code du main fonctionne.**
 
 On obtient la classe suivante:
@@ -248,8 +227,6 @@ public class CurrentMaximum {
 
 Exceptionnellement, on peut utiliser un type Integer comme propriété, car on ne peut pas savoir la véritable valeur
 max dans le cas d'un int si la valeur max n'a jamais excédé 0 (la gestion de valeur par défaut est impossible à faire proprement).
-
-4. **On souhaite maintenant pouvoir afficher le thread qui a proposé le maximum en même temps que sa valeur. Modifier le code en conséquence.**
 
 <br>
 
@@ -283,13 +260,6 @@ et le programme ne se termine pas.
 Le JIT est la pour optimiser le code, mais ne se focalise pas sur l'aspect de concurrence pendant le processus d'optimisation.
 Il est possible que le JIT ait vu rapidement (au bout de quelques centaines de tours) que la valeur "value" n'allait jamais changer, et a
 donc altéré le code.
-
-3. **Écrire une classe thread-safe RendezVous sur le même principe que la classe StupidRendezVous mais qui fonctionne correctement, que l'instruction Thread.sleep(1) soit commentée ou non.**
-
-On obtient la classe suivante:
-```java
-
-
 
 4. **Regarder l'utilisation du CPU par votre programme avec la commande top. Votre code fait de l'attente active ce qui n'est pas une solution acceptable, mais vous n'avez pas les outils pour corriger cela pour l'instant. 
     Nous verrons au prochain cours comment réaliser une méthode bloquante sans faire de l'attente active.**
