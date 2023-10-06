@@ -261,6 +261,34 @@ Le JIT est la pour optimiser le code, mais ne se focalise pas sur l'aspect de co
 Il est possible que le JIT ait vu rapidement (au bout de quelques centaines de tours) que la valeur "value" n'allait jamais changer, et a
 donc altéré le code.
 
+3. **Écrire une classe thread-safe RendezVous sur le même principe que la classe StupidRendezVous mais qui fonctionne correctement, que l'instruction Thread.sleep(1) soit commentée ou non.**
+
+Classe `RendezVous`:
+```java
+import java.util.Objects;
+
+public class RendezVous<V> {
+  private V value;
+  private final Object lock = new Object();
+
+  public void set(V value) {
+    synchronized (lock) {
+      Objects.requireNonNull(value);
+      this.value = value;
+    }
+  }
+
+  public V get() throws InterruptedException {
+    while (value == null) {
+      Thread.sleep(1);
+    }
+    synchronized (lock) {
+      return value;
+    }
+  }
+}
+```
+
 4. **Regarder l'utilisation du CPU par votre programme avec la commande top. Votre code fait de l'attente active ce qui n'est pas une solution acceptable, mais vous n'avez pas les outils pour corriger cela pour l'instant. 
     Nous verrons au prochain cours comment réaliser une méthode bloquante sans faire de l'attente active.**
 
