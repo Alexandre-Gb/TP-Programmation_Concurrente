@@ -1,3 +1,4 @@
+import java.util.Objects;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.IntStream;
@@ -19,6 +20,8 @@ public class CyclicExchanger<T> {
   }
 
   public T exchange(T value) throws InterruptedException {
+    Objects.requireNonNull(value);
+
     lock.lock();
     try {
       if (nbWaiting >= nbParticipants) {
