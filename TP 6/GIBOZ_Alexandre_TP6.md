@@ -489,9 +489,6 @@ if (semaphore.waitingForPermits() == 0){
 }
 ```
 
-**Quel est le problème avec le code proposé ?**
-x
-
 **Comment faire évoluer la classe SemaphoreClosable pour pouvoir obtenir cette fonctionnalité ?**
 Main:
 ```java
