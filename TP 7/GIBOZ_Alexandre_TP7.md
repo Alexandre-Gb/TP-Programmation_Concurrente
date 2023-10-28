@@ -286,7 +286,142 @@ méthodes de retester la propriété.
 
 ## Exercice 2 - Count And Interrupt (à faire à la maison)
 
+On souhaite avoir 4 threads qui affichent chacun leur numéro et un compteur indéfiniment (chaque thread a son propre compteur). 
+Pour éviter de faire chauffer la machine, l'affichage se fera une fois par seconde (en utilisant Thread.sleep()).
+
+De plus, le thread main va lire des entiers sur l'entrée standard et si l'utilisateur entre une valeur correspondant au numéro d'un thread, ce dernier sera arrêté.
+
+Le code pour lire sur l'entrée standard est le suivant :
+```java
+  System.out.println("enter a thread id:");
+  try (var input = new InputStreamReader(System.in);  var reader = new BufferedReader(input)) {
+    String line;
+    while ((line = reader.readLine()) != null) {
+      var threadId = Integer.parseInt(line);
+      ...
+    }
+  }
+```
+
+1. **Comment faire pour que le programme se termine si l'on fait un Ctrl-D dans le terminal ?**
+
+On procède ainsi:
+```java
+public class CountAndInterrupt {
+  public static void main(String[] args) {
+    var nbThreads = 4;
+    var threads = new ArrayList<Thread>(nbThreads);
+
+    IntStream.range(0, nbThreads).forEach(i -> {
+      threads.add(Thread.ofPlatform().daemon().start(()-> {
+        var count = 0;
+        for (;;) {
+          System.out.println("Current counting value : " + count);
+          System.out.println("Thread Id : " + Thread.currentThread().threadId());
+          try {
+            Thread.sleep(1_000);
+          } catch (InterruptedException e) {
+            return;
+          }
+          count++;
+        }
+      }));
+    });
+
+    System.out.println("enter a thread id:");
+    try (var scanner = new Scanner(System.in)) {
+      while (scanner.hasNextInt()) {
+        var threadId = scanner.nextInt();
+        for (var thread : threads) {
+          if (thread.threadId() == threadId) {
+            thread.interrupt();
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
 <br>
 
 ## Exercice 3 - Le Juste Prix (exam 2017-2018)
 
+1. **Écrire le code de la classe ThePriceIsRight.**
+
+Classe `ThePriceIsRight`:
+```java
+import java.util.LinkedHashMap;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+
+public class ThePriceIsRight {
+  private final int price;
+  private final int nbThreads;
+  private boolean hasBeenInterrupted;
+  private final LinkedHashMap<Thread, Integer> propositions = new LinkedHashMap<>();
+  private final ReentrantLock lock = new ReentrantLock();
+  private final Condition notAllPropositions = lock.newCondition();
+
+  public ThePriceIsRight(int price, int nbThreads) {
+    lock.lock();
+    try {
+      if (price < 0 || nbThreads < 1) {
+        throw new IllegalArgumentException();
+      }
+
+      this.price = price;
+      this.nbThreads = nbThreads;
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  public boolean propose(int proposition) {
+    lock.lock();
+    try {
+      if (proposition < 0) {
+        throw new IllegalArgumentException();
+      }
+
+      if (propositions.containsKey(Thread.currentThread()) || propositions.size() == nbThreads) {
+        return false;
+      }
+
+      propositions.put(Thread.currentThread(), proposition);
+      notAllPropositions.signalAll();
+
+      while (!hasBeenInterrupted && propositions.size() != nbThreads) {
+        notAllPropositions.await();
+      }
+
+      var closestPrice = Integer.MAX_VALUE;
+      for (int p : propositions.values()) {
+        if (distance(p) < distance(closestPrice)) {
+          closestPrice = p;
+        }
+      }
+
+      return (closestPrice == proposition &&
+              propositions.values().stream()
+                      .filter(p -> p == proposition)
+                      .count() == 1);
+    } catch (InterruptedException e) {
+      if (nbThreads != 1) {
+        hasBeenInterrupted = true;
+        propositions.remove(Thread.currentThread());
+        notAllPropositions.signalAll();
+      }
+
+      return false;
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private int distance(int proposition) {
+    return Math.abs(proposition - price);
+  }
+}
+```
