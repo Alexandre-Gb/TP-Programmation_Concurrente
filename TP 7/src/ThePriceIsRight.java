@@ -31,7 +31,7 @@ public class ThePriceIsRight {
         throw new IllegalArgumentException();
       }
 
-      if (propositions.containsKey(Thread.currentThread()) || propositions.size() == nbThreads) {
+      if (hasBeenInterrupted || propositions.containsKey(Thread.currentThread()) || propositions.size() == nbThreads) {
         return false;
       }
 
