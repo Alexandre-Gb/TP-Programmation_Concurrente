@@ -343,7 +343,6 @@ public class CountAndInterrupt {
 }
 ```
 
-
 <br>
 
 ## Exercice 3 - Le Juste Prix (exam 2017-2018)
@@ -352,10 +351,6 @@ public class CountAndInterrupt {
 
 Classe `ThePriceIsRight`:
 ```java
-import java.util.LinkedHashMap;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
-
 public class ThePriceIsRight {
   private final int price;
   private final int nbThreads;
@@ -385,7 +380,7 @@ public class ThePriceIsRight {
         throw new IllegalArgumentException();
       }
 
-      if (propositions.containsKey(Thread.currentThread()) || propositions.size() == nbThreads) {
+      if (hasBeenInterrupted || propositions.containsKey(Thread.currentThread()) || propositions.size() == nbThreads) {
         return false;
       }
 
@@ -423,5 +418,5 @@ public class ThePriceIsRight {
   private int distance(int proposition) {
     return Math.abs(proposition - price);
   }
-}
+}-
 ```
