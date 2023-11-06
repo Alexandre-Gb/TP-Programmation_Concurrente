@@ -10,18 +10,13 @@ public class ThePriceIsRight {
   private final ReentrantLock lock = new ReentrantLock();
   private final Condition notAllPropositions = lock.newCondition();
 
-  public ThePriceIsRight(int price, int nbThreads) {
-    lock.lock();
-    try {
-      if (price < 0 || nbThreads < 1) {
-        throw new IllegalArgumentException();
-      }
-
-      this.price = price;
-      this.nbThreads = nbThreads;
-    } finally {
-      lock.unlock();
+  public ThePriceIsRight(int price, int nbThreads) { // Lock not necessary since no assignation is made on non-final fields
+    if (price < 0 || nbThreads < 1) {
+      throw new IllegalArgumentException();
     }
+
+    this.price = price;
+    this.nbThreads = nbThreads;
   }
 
   public boolean propose(int proposition) {
@@ -36,10 +31,13 @@ public class ThePriceIsRight {
       }
 
       propositions.put(Thread.currentThread(), proposition);
-      notAllPropositions.signalAll();
 
-      while (!hasBeenInterrupted && propositions.size() != nbThreads) {
-        notAllPropositions.await();
+      if (propositions.size() == nbThreads) {
+        notAllPropositions.signalAll();
+      } else {
+        while (!hasBeenInterrupted && propositions.size() != nbThreads) {
+          notAllPropositions.await();
+        }
       }
 
       var closestPrice = Integer.MAX_VALUE;
