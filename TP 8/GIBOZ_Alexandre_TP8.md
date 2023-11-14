@@ -285,5 +285,6 @@ Elle implémente une méthode retrieve() qui renvoie le prix le moins élevé, c
 
 1. **Quel type de BlockingQueue peut-on utiliser pour sitesQueue et answersQueue ?**
 
-Les queues devant stocker plusieurs éléments, le choix d'une SynchronousQueue n'est pas envisageable. Le meilleur choix semble l'utilisation d'une ArrayBlockingQueue qui aura
-pour size le nombre de sites disponibles (`Request.ALL_SITES.size()`).
+Les queues devant stocker plusieurs éléments, le choix d'une SynchronousQueue n'est pas envisageable.
+Étant donné que l'on connait la taille et que l'on souhaite que cette dernière soit fixée et précise, une LinkedBlockingQueue n'est pas un choix optimal.
+Le meilleur choix semble l'utilisation d'une ArrayBlockingQueue qui aura pour taille le nombre de sites disponibles (`Request.ALL_SITES.size()`).
