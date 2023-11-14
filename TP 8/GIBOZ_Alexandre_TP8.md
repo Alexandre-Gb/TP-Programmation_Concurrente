@@ -201,3 +201,89 @@ public class Fastest {
   }
 }
 ```
+
+2. **On veut maintenant écrire une classe Cheapest qui lance un thread par site et collecte toutes les réponses pour renvoyer la moins chère. 
+     Si l'article, n'est présent sur aucun site, la méthode renvoie Optional.empty()
+     Écrire la classe Cheapest.**
+
+Classe `Cheapest`:
+```java
+public class Cheapest {
+  private final String item;
+  private final int interruptedTime;
+
+  public Cheapest(String item, int interruptedTime) {
+    Objects.requireNonNull(item);
+    if (interruptedTime < 0) { throw new IllegalArgumentException(); }
+
+    this.item = item;
+    this.interruptedTime = interruptedTime;
+  }
+
+  public Optional<Answer> retrieve() {
+    var queue = new SynchronousQueue<Optional<Answer>>();
+    var sites = Request.ALL_SITES;
+    var threadList = new ArrayList<Thread>();
+
+    IntStream.range(0, sites.size()).forEach(i -> Thread.ofPlatform().start(() -> {
+      threadList.add(Thread.currentThread());
+      var request = new Request(sites.get(i), item);
+      try {
+        queue.put(request.request(interruptedTime));
+      } catch (InterruptedException e) {
+        return;
+      }
+    }));
+
+    var list = new ArrayList<Answer>();
+    for(int i = 0; i < sites.size(); i++) {
+      try {
+        queue.take().ifPresent(list::add);
+      } catch (InterruptedException e) {
+        continue;
+      }
+    }
+
+    if (list.isEmpty()) {
+      threadList.forEach(Thread::interrupt);
+      return Optional.empty();
+    }
+
+    threadList.forEach(Thread::interrupt);
+    return list.stream().min(Answer::compareTo);
+  }
+
+  public static void main(String[] args) {
+    var cheapest = new Cheapest("tortank", 4_000);
+    var val = cheapest.retrieve();
+
+    val.ifPresentOrElse(
+        answer -> System.out.println("Found: " + answer),
+        () -> System.out.println("Not found")
+    );
+  }
+}
+```
+
+<br>
+
+## Exercice 3
+
+Dans cet exercice, on cherche à pallier le problème du trop grand nombre de threads démarrés simultanément.
+
+L'idée est de démarrer un nombre fixé poolSize de threads, quel que soit le nombre de sites à interroger. 
+Dans la suite, nous appellerons ces threads des worker threads. 
+L'idée est que les worker threads vont, en boucle, exécuter des requêtes sur les différents sites et communiquer la réponse au thread qui exécute la méthode retrieve. 
+Bien sûr, on ne veut pas que deux worker threads effectuent une requête pour le même site.
+
+Pour communiquer entre le thread qui exécute la méthode retrieve et les worker threads, on utilise deux BlockingQueue sitesQueue et answersQueue. 
+La file sitesQueue contient initialement tous les sites. 
+Les worker threads vont en boucle prendre dans cette file un site, effectuer la Request et mettre la réponse dans la answersQueue.
+
+La classe CheapestPooled prend à sa construction le nombre poolSize de worker threads et la valeur du timeout pour chacune des requêtes. 
+Elle implémente une méthode retrieve() qui renvoie le prix le moins élevé, comme la classe Cheapest écrite précédemment.
+
+1. **Quel type de BlockingQueue peut-on utiliser pour sitesQueue et answersQueue ?**
+
+Les queues devant stocker plusieurs éléments, le choix d'une SynchronousQueue n'est pas envisageable. Le meilleur choix semble l'utilisation d'une ArrayBlockingQueue qui aura
+pour size le nombre de sites disponibles (`Request.ALL_SITES.size()`).
