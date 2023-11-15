@@ -24,15 +24,18 @@ public class Cheapest {
     var sites = Request.ALL_SITES;
     var threadList = new ArrayList<Thread>();
 
-    IntStream.range(0, sites.size()).forEach(i -> Thread.ofPlatform().start(() -> {
-      threadList.add(Thread.currentThread());
-      var request = new Request(sites.get(i), item);
-      try {
-        queue.put(request.request(interruptedTime));
-      } catch (InterruptedException e) {
-        return;
-      }
-    }));
+    IntStream.range(0, sites.size()).forEach(i -> {
+      threadList.add( // Avoids data race
+        Thread.ofPlatform().start(() -> {
+          var request = new Request(sites.get(i), item);
+          try {
+            queue.put(request.request(interruptedTime));
+          } catch (InterruptedException e) {
+            return;
+          }
+        })
+      );
+    });
 
     var list = new ArrayList<Answer>();
     for(int i = 0; i < sites.size(); i++) {
