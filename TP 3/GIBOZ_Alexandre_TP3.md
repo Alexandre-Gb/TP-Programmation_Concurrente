@@ -397,7 +397,7 @@ et une valeur pseudo-aléatoire comprise entre 0 et BIG_LONG.
 
 2. **Commenter l'instruction Thread.sleep(1) dans la méthode get puis ré-exécuter le code. Que se passe-t-il ? Expliquer où est le bug ?**
 
-Les quatres threads trouvent une valeur première, on le sait grâce à l'apparition des messages dans le terminal, cependant, rien d'autre ne se produit 
+Les equates threads trouvent une valeur première, on le sait grâce à l'apparition des messages dans le terminal, cependant, rien d'autre ne se produit 
 et le programme ne se termine pas.
 
 Le JIT est la pour optimiser le code, mais ne se focalise pas sur l'aspect de concurrence pendant le processus d'optimisation.
@@ -421,12 +421,13 @@ public class RendezVous<V> {
     }
   }
 
-  public V get() throws InterruptedException {
-    while (value == null) {
-      Thread.sleep(1);
-    }
-    synchronized (lock) {
-      return value;
+  public V get() {
+    for(;;) {
+      synchronized (lock) {
+        if (value != null) {
+          return value;
+        }
+      }
     }
   }
 }
@@ -436,4 +437,3 @@ public class RendezVous<V> {
     Nous verrons au prochain cours comment réaliser une méthode bloquante sans faire de l'attente active.**
 
 On constate effectivement une très forte utilisation du CPU par le programme (supérieure à 50% dans mon cas).
-

@@ -11,12 +11,13 @@ public class RendezVous<V> {
     }
   }
 
-  public V get() throws InterruptedException {
-    while (value == null) {
-      Thread.sleep(1);
-    }
-    synchronized (lock) {
-      return value;
+  public V get() {
+    for(;;) {
+      synchronized (lock) {
+        if (value != null) {
+          return value;
+        }
+      }
     }
   }
 }
