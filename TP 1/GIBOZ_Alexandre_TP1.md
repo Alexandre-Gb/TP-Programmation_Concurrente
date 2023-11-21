@@ -16,8 +16,6 @@ Etant donné qu'un thread ne prend pas de paramètres et ne retourne rien, Runna
 
 Voici le code de la classe HelloThread :
 ```java
-import java.util.stream.IntStream;
-
 public final class HelloThread {
   private final int nbThread;
 
@@ -35,7 +33,7 @@ public final class HelloThread {
           System.out.println("hello " + j);
         }
       };
-      Thread thread = Thread.ofPlatform().start(runnable);
+      Thread.ofPlatform().start(runnable);
     });
   }
 
@@ -55,8 +53,6 @@ au même niveau d'exécution au même moment. L'affichage du numéro de thread p
 
 Code complet de la classe HelloThread :
 ```java
-import java.util.stream.IntStream;
-
 public final class HelloThread {
   private final int nbThread;
 
@@ -74,7 +70,7 @@ public final class HelloThread {
           System.out.println("hello " + i + " " + j);
         }
       };
-      Thread thread = Thread.ofPlatform().start(runnable);
+      Thread.ofPlatform().start(runnable);
     });
   }
 
@@ -98,7 +94,6 @@ import java.util.stream.IntStream;
 
 public final class HelloThreadJoin {
   private final int nbThread;
-  private final ArrayList<Thread> threads = new ArrayList<>();
 
   public HelloThreadJoin(int nbThread) {
     if (nbThread < 0) {
@@ -109,22 +104,20 @@ public final class HelloThreadJoin {
   }
 
   public void run() {
-    IntStream.range(0, nbThread).forEach(i -> {
-      Runnable runnable = () -> {
-        for(int j = 0; j <= 5000; j++) {
-          System.out.println("hello " + i + " " + j);
-        }
-      };
-      Thread thread = Thread.ofPlatform().start(runnable);
-      threads.add(thread);
-    });
-    threads.forEach(thread -> {
-      try {
-        thread.join();
-      } catch (InterruptedException e) {
-        throw new AssertionError(e);
+    var threads = new ArrayList<Thread>(nbThread);
+    IntStream.range(0, nbThread).forEach(i -> threads.add(Thread.ofPlatform().start(() -> {
+      for(int j = 0; j <= 5000; j++) {
+        System.out.println("hello " + i + " " + j);
       }
-    }
+    })));
+
+    threads.forEach(thread -> {
+        try {
+          thread.join();
+        } catch (InterruptedException e) {
+          throw new AssertionError(e);
+        }
+      }
     );
     System.out.println("Le thread a fini son Runnable");
   }

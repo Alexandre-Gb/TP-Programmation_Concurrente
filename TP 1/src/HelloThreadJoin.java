@@ -3,7 +3,6 @@ import java.util.stream.IntStream;
 
 public final class HelloThreadJoin {
   private final int nbThread;
-  private final ArrayList<Thread> threads = new ArrayList<>();
 
   public HelloThreadJoin(int nbThread) {
     if (nbThread < 0) {
@@ -14,15 +13,13 @@ public final class HelloThreadJoin {
   }
 
   public void run() {
-    IntStream.range(0, nbThread).forEach(i -> {
-      Runnable runnable = () -> {
-        for(int j = 0; j <= 5000; j++) {
-          System.out.println("hello " + i + " " + j);
-        }
-      };
-      Thread thread = Thread.ofPlatform().start(runnable);
-      threads.add(thread);
-    });
+    var threads = new ArrayList<Thread>(nbThread);
+    IntStream.range(0, nbThread).forEach(i -> threads.add(Thread.ofPlatform().start(() -> {
+      for(int j = 0; j <= 5000; j++) {
+        System.out.println("hello " + i + " " + j);
+      }
+    })));
+
     threads.forEach(thread -> {
         try {
           thread.join();

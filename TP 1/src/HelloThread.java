@@ -17,7 +17,7 @@ public final class HelloThread {
           System.out.println("hello " + i + " " + j);
         }
       };
-      Thread thread = Thread.ofPlatform().start(runnable);
+      Thread.ofPlatform().start(runnable);
     });
   }
 
