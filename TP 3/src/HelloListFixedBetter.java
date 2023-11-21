@@ -23,5 +23,4 @@ public class HelloListFixedBetter {
     System.out.println("taille de la liste:" + fixedList.size());
     System.out.println("liste: " + fixedList);
   }
-
 }

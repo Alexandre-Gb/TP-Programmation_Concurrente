@@ -3,7 +3,6 @@ public class HonorBoard {
   private String lastName;
   private final Object lock = new Object();
 
-  
   public void set(String firstName, String lastName) {
     synchronized(lock) {
       this.firstName = firstName;
