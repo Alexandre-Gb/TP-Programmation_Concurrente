@@ -1,4 +1,5 @@
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.stream.IntStream;
 
 public class UnboundedSafeQueue<V> {
@@ -21,21 +22,19 @@ public class UnboundedSafeQueue<V> {
   }
 
   public static void main(String[] args) throws InterruptedException {
-    UnboundedSafeQueue<String> queue = new UnboundedSafeQueue<>();
+    var queue = new UnboundedSafeQueue<>();
     var nbThreads = 3;
-    Thread[] threads = new Thread[nbThreads];
+    var threads = new ArrayList<Thread>(nbThreads);
 
     IntStream.range(0, nbThreads).forEach(i -> {
-      Runnable runnable = () -> {
+      threads.add(Thread.ofPlatform().start(() -> {
         try {
           Thread.sleep(2_000);
         } catch (InterruptedException e) {
           throw new AssertionError(e);
         }
         queue.add(Thread.currentThread().getName());
-      };
-
-      threads[i] = Thread.ofPlatform().start(runnable);
+      }));
     });
 
     for (var thread : threads) {
