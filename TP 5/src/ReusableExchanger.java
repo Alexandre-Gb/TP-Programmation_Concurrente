@@ -3,14 +3,8 @@ import java.util.stream.IntStream;
 public class ReusableExchanger<T> {
   private T value1 = null;
   private T value2 = null;
-  private ExchangerStatus status;
+  private ExchangerStatus status = ExchangerStatus.EMPTY;
   private final Object lock = new Object();
-
-  public ReusableExchanger() {
-    synchronized (lock) {
-      status = ExchangerStatus.EMPTY; // May be initialized too late, so a constructor is required
-    }
-  }
 
   public T exchange(T value) throws InterruptedException {
     synchronized (lock) {
@@ -38,6 +32,8 @@ public class ReusableExchanger<T> {
     }
   }
 
+  private enum ExchangerStatus { EMPTY, FIRST_VALUE, FULL }
+
   public static void main(String[] args) {
     var exchanger = new ReusableExchanger<String>();
     IntStream.range(0, 10).forEach(i -> {
@@ -49,11 +45,5 @@ public class ReusableExchanger<T> {
         }
       });
     });
-  }
-
-  private enum ExchangerStatus {
-    EMPTY,
-    FIRST_VALUE,
-    FULL
   }
 }
