@@ -130,3 +130,54 @@ public class CheapestPooledWithGlobalTimeout {
   }
 }
 ```
+
+3. **En utilisant un ExecutorService, écrire une classe FastestPooled dont la méthode retrieve() lance un nombre fixé de threads qui tentent d'obtenir le prix d'un item et renvoie le premier prix obtenu, s'il existe.**
+
+Classe `FastestPooled`:
+```java
+public class FastestPooled {
+  private final String item;
+  private final int interruptedTime;
+  private final int nbThreads;
+
+  public FastestPooled(String item, int interruptedTime, int nbThreads) {
+    Objects.requireNonNull(item);
+    if (interruptedTime < 0) { throw new IllegalArgumentException(); }
+    if (nbThreads < 1) { throw new IllegalArgumentException(); }
+
+    this.item = item;
+    this.interruptedTime = interruptedTime;
+    this.nbThreads = nbThreads;
+  }
+
+  public Optional<Answer> retrieve() throws InterruptedException {
+    var sites = Request.ALL_SITES;
+    var executorService = Executors.newFixedThreadPool(nbThreads);
+    var callables = new ArrayList<Callable<Optional<Answer>>>();
+
+    for (var site : sites) {
+      callables.add(() -> new Request(site, item).request(interruptedTime));
+    }
+
+    Optional<Answer> answer;
+    try {
+      answer = executorService.invokeAny(callables);
+    } catch (ExecutionException e) {
+      throw new AssertionError(e);
+    }
+
+    executorService.shutdown();
+    return answer;
+  }
+
+  public static void main(String[] args) throws InterruptedException {
+    var cheapest = new FastestPooled("tortank", 4_000, 5);
+    var val = cheapest.retrieve();
+
+    val.ifPresentOrElse(
+            answer -> System.out.println("Found: " + answer),
+            () -> System.out.println("Not found")
+    );
+  }
+}
+```
