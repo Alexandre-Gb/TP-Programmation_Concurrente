@@ -94,7 +94,6 @@ public class HelloListFixedBetter {
 
     System.out.println("taille de la liste:" + fixedList.size());
   }
-
 }
 ```
 
@@ -115,8 +114,7 @@ On modifie la classe `ThreadSafeList` pour override la méthode `toString`:
   }
 ```
 
-L'affichage n'étant pas atomique (la size peut être bougée entre temps, des valeurs ajoutées...), on doit aussi utiliser
-le lock.
+L'affichage n'étant pas atomique (la size peut être bougée entre temps, des valeurs ajoutées...), on doit aussi utiliser le lock.
 
 <br>
 
@@ -142,7 +140,6 @@ public class HonorBoard {
   private String firstName;
   private String lastName;
   private final Object lock = new Object();
-
   
   public void set(String firstName, String lastName) {
     synchronized(lock) {
@@ -174,8 +171,8 @@ System.out.println(board.firstName() + ' ' + board.lastName());
 
 **Avec les deux accesseurs définis comme d'habitude (et à condition d'utiliser des bloc synchronized) ?**
 
-Non. Bien que la classe est convenablement conçue (lock dans toString et dans les accesseurs), elle est incorrectement utilisée dans ce scénario.
-La ou la première ligne prend le lock et construit correctement la chaîne, la deuxième ligne prend le lock, mais ne construit pas la chaîne atomiquement.
+Non, bien que la classe soit convenablement conçue (lock dans toString et dans les accesseurs), elle est incorrectement utilisée.
+Là où la première ligne prend le lock et construit correctement la chaîne, la deuxième ligne prend le lock, mais ne construit pas la chaîne atomiquement.
 Il est important de conserver le lock pendant la totalité d'une opération.
 
 <br>
@@ -188,9 +185,9 @@ L'objectif final est d'écrire un programme qui démarre 4 threads qui proposent
 1. **Pourquoi a-t-on besoin d'une classe thread-safe pour réaliser ce programme ? Quelles doivent être les méthodes fournies par cette classe ?**
 
 Une classe thread-safe est une classe qui empêche d'obtenir un état incohérent de la classe, et ce 
-même si elle est utilisée par plusieurs threads en parallèle.
+même bien qu'elle soit utilisée par plusieurs threads en parallèle.
 
-Il est nécessaire que la classe soit thread-safe car elle est utilisée par plusieurs threads en parallèle, et que
+Il est nécessaire que la classe soit thread-safe car elle est effectivement utilisée par plusieurs threads, et que
 pendant qu'un est occupé à ajouter des valeurs, l'autre y accède au même moment, ce qui peut causer des incohérences.
 
 Les méthodes (thread-safe) de la classe peuvent être:
@@ -199,7 +196,7 @@ Les méthodes (thread-safe) de la classe peuvent être:
 
 3. **Écrire le code de la classe thread-safe CurrentMaximum afin que le code du main fonctionne.**
 
-On obtient la classe suivante:
+On obtient la classe suivante :
 ```java
 import java.util.Optional;
 
@@ -217,16 +214,162 @@ public class CurrentMaximum {
 
   public void propose(int newValue) {
     synchronized (lock) {
-      if (this.value == null || newValue > this.value) {
-        this.value = newValue;
+      if (value == null || newValue > value) {
+        value = newValue;
       }
+    }
+  }
+
+  public static class Main {
+    public static void main(String[] args) {
+      var nbThreads = 4;
+      var nbLoops = 10;
+      var threadList = new ArrayList<Thread>(nbThreads);
+      var currentMaximum = new CurrentMaximum();
+
+      IntStream.range(0, nbThreads).forEach(i -> {
+        threadList.add(Thread.ofPlatform().name("Thread-" + i).start(() -> {
+          for (int j = 0; j < nbLoops; j++) {
+            try {
+              Thread.sleep(1_000);
+            } catch (InterruptedException e) {
+              throw new AssertionError(e);
+            }
+
+            var newValue = ThreadLocalRandom.current().nextInt(MAX_VALUE);
+            System.out.println(Thread.currentThread().getName() + " propose " + newValue);
+            currentMaximum.propose(newValue);
+          }
+        }));
+      });
+
+      Optional<Integer> max;
+      for (int i = 0; i < nbLoops; i++) {
+        try {
+          Thread.sleep(1_000);
+        } catch (InterruptedException e) {
+          throw new AssertionError(e);
+        }
+
+        max = currentMaximum.max();
+        max.ifPresentOrElse(
+                val -> System.out.println("Max courant : " + val),
+                () -> System.out.println("Pas de max courant pour le moment.")
+        );
+      }
+
+      for (var thread : threadList) {
+        try {
+          thread.join();
+        } catch (InterruptedException e) {
+          throw new AssertionError(e);
+        }
+      }
+
+      max = currentMaximum.max();
+      max.ifPresentOrElse(
+              val -> System.out.println("Max final : " + val),
+              () -> System.out.println("Pas de max final.")
+      );
     }
   }
 }
 ```
 
-Exceptionnellement, on peut utiliser un type Integer comme propriété, car on ne peut pas savoir la véritable valeur
-max dans le cas d'un int si la valeur max n'a jamais excédé 0 (la gestion de valeur par défaut est impossible à faire proprement).
+Exceptionnellement, on peut utiliser un Integer comme propriété, car on ne peut pas savoir la véritable valeur
+max dans le cas d'un int si la valeur max n'a jamais excédé 0 (la gestion de valeur par défaut est impossible à faire proprement avec un int primitif).
+
+4. **On souhaite maintenant pouvoir afficher le thread qui a proposé le maximum en même temps que sa valeur. Modifier le code en conséquence.**
+
+On modifie le code :
+```java
+public class CurrentMaximum {
+  public static int MAX_VALUE = 10_000;
+  private Integer value;
+  private Thread maxThread;
+  private final Object lock = new Object();
+
+  public Optional<Integer> max() {
+    synchronized (lock) {
+      return Optional.ofNullable(value);
+    }
+  }
+
+  public void propose(int newValue) {
+    synchronized (lock) {
+      if (value == null || newValue > value) {
+        value = newValue;
+        maxThread = Thread.currentThread();
+      }
+    }
+  }
+
+  public Optional<Thread> maxThread() {
+    synchronized (lock) {
+      return Optional.ofNullable(maxThread);
+    }
+  }
+
+  public static class Main {
+    public static void main(String[] args) {
+      var nbThreads = 4;
+      var nbLoops = 10;
+      var threadList = new ArrayList<Thread>(nbThreads);
+      var currentMaximum = new CurrentMaximum();
+
+      IntStream.range(0, nbThreads).forEach(i -> {
+        threadList.add(Thread.ofPlatform().name("Thread-" + i).start(() -> {
+          for (int j = 0; j < nbLoops; j++) {
+            try {
+              Thread.sleep(1_000);
+            } catch (InterruptedException e) {
+              throw new AssertionError(e);
+            }
+
+            var newValue = ThreadLocalRandom.current().nextInt(MAX_VALUE);
+            System.out.println(Thread.currentThread().getName() + " propose " + newValue);
+            currentMaximum.propose(newValue);
+          }
+        }));
+      });
+
+      Optional<Integer> max;
+      Optional<Thread> maxThread;
+      for (int i = 0; i < nbLoops; i++) {
+        try {
+          Thread.sleep(1_000);
+        } catch (InterruptedException e) {
+          throw new AssertionError(e);
+        }
+
+        max = currentMaximum.max();
+        maxThread = currentMaximum.maxThread();
+        if (max.isPresent() && maxThread.isPresent()) {
+          System.out.println("Max courant : " + max.get() + " proposé par " + maxThread.get().getName());
+        } else {
+          System.out.println("Pas de max courant pour le moment.");
+        }
+      }
+
+      for (var thread : threadList) {
+        try {
+          thread.join();
+        } catch (InterruptedException e) {
+          throw new AssertionError(e);
+        }
+      }
+
+      max = currentMaximum.max();
+      maxThread = currentMaximum.maxThread();
+      if (max.isPresent() && maxThread.isPresent()) {
+        System.out.println("Max final : " + max.get() + " proposé par " + maxThread.get().getName());
+      } else {
+        System.out.println("Pas de max final.");
+      }
+    }
+  }
+}
+```
 
 <br>
 
