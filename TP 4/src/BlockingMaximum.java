@@ -9,8 +9,11 @@ public class BlockingMaximum {
 
   public Optional<Integer> getMax() throws InterruptedException {
     synchronized (lock) {
-      lock.wait();
-      return Optional.ofNullable(currentMax);
+      while (currentMax == null) {
+        lock.wait();
+      }
+
+      return Optional.of(currentMax); // Since we wait until currentMax is not null, we can safely use of instead of ofNullable
     }
   }
 

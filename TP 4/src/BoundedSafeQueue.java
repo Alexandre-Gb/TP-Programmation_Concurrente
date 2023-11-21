@@ -1,4 +1,5 @@
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.stream.IntStream;
 
 public class BoundedSafeQueue<V> {
@@ -35,10 +36,9 @@ public class BoundedSafeQueue<V> {
     int nbThreads = 3;
     int capacity = 2;
     var queue = new BoundedSafeQueue<String>(capacity);
-    Thread[] threads = new Thread[nbThreads];
 
     IntStream.range(0, nbThreads).forEach(i -> {
-      Runnable runnable = () -> {
+      Thread.ofPlatform().start(() -> {
         try {
           Thread.sleep(2_000);
         } catch (InterruptedException e) {
@@ -49,9 +49,7 @@ public class BoundedSafeQueue<V> {
         } catch (InterruptedException e) {
           throw new AssertionError(e);
         }
-      };
-
-      threads[i] = Thread.ofPlatform().start(runnable);
+      });
     });
 
     for(;;) {

@@ -114,21 +114,19 @@ public class UnboundedSafeQueue<V> {
 Méthode `main` :
 ```java
 public static void main(String[] args) throws InterruptedException {
-  UnboundedSafeQueue<String> queue = new UnboundedSafeQueue<>();
+  var queue = new UnboundedSafeQueue<>();
   var nbThreads = 3;
-  Thread[] threads = new Thread[nbThreads];
+  var threads = new Thread[nbThreads];
 
   IntStream.range(0, nbThreads).forEach(i -> {
-    Runnable runnable = () -> {
+    threads.add(Thread.ofPlatform().start(() -> {
       try {
         Thread.sleep(2_000);
       } catch (InterruptedException e) {
         throw new AssertionError(e);
       }
       queue.add(Thread.currentThread().getName());
-    };
-
-    threads[i] = Thread.ofPlatform().start(runnable);
+    }));
   });
 
   for (var thread : threads) {
